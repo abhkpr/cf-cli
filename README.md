@@ -233,4 +233,8 @@ Before contributing:
 * Use headers properly
 * Keep API logic separate from command logic
 
+---
 
+## License
+
+This project is licensed under the MIT License.
