@@ -27,3 +27,16 @@ void list_contests() {
                   << c["phase"] << "\n";
     }
 }
+
+void contest_command(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        std::cout << "Usage: cf contest list\n";
+        return;
+    }
+
+    if (args[1] == "list") {
+        list_contests();
+    } else {
+        std::cout << "Unknown contest action\n";
+    }
+}

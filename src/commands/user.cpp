@@ -22,3 +22,11 @@ void get_user(const std::string& handle) {
     std::cout << "Rating: " << user.value("rating", 0) << "\n";
     std::cout << "Rank: " << user.value("rank", "N/A") << "\n";
 }
+
+void user_command(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        std::cout << "Usage: cf user <handle>\n";
+        return;
+    }
+    get_user(args[1]);
+}
