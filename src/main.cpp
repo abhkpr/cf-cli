@@ -1,7 +1,7 @@
-#include "commands/registry.h"
 #include "commands/user.h"
 #include "commands/contest.h"
 #include "commands/problem.h"
+#include "commands/registry.h"
 
 int main(int argc, char* argv[]) {
     CommandRegistry registry;

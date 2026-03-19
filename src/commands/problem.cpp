@@ -1,64 +1,71 @@
-#include "commands/problem.h"
-#include "api/codeforces.h"
 #include <iostream>
-#include <nlohmann/json.hpp>
-#include <cctype>
+#include <string>
+#include <vector>
+#include <algorithm>      
+#include "commands/problem.h"
+#include "utils/cache.h"
+#include "api/codeforces.h"
+#include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
 
-void get_problem(const std::string& code) {
-    // Step 1: split contestId and index
-    int i = 0;
-    while (i < code.size() && isdigit(code[i])) i++;
+#include <chrono> // for time checks
 
-    if (i == 0 || i == code.size()) {
-        std::cout << "Invalid problem format\n";
-        return;
-    }
+void get_problem(const std::string& code, const std::vector<std::string>& args) {
+    std::string cache_path = std::string(getenv("HOME")) + "/.cf-cli/problems.json";
 
-    int contestId = std::stoi(code.substr(0, i));
-    std::string index = code.substr(i);
+    bool refresh = std::find(args.begin(), args.end(), "--refresh") != args.end();
 
-    // Step 2: fetch all problems
-    std::string url = "https://codeforces.com/api/problemset.problems";
-    std::string data = http_get(url);
+    bool fetch_from_api = refresh || !cache_exists(cache_path);
 
-    // Step 3: parse JSON
-    auto j = json::parse(data);
-
-    if (j["status"] != "OK") {
-        std::cout << "Error fetching problems\n";
-        return;
-    }
-
-    auto problems = j["result"]["problems"];
-
-    // Step 4: search for problem
-    for (auto& p : problems) {
-        if (p["contestId"] == contestId && p["index"] == index) {
-            std::cout << "Name: " << p["name"] << "\n";
-            std::cout << "Contest: " << p["contestId"] << "\n";
-            std::cout << "Index: " << p["index"] << "\n";
-
-            if (p.contains("rating"))
-                std::cout << "Rating: " << p["rating"] << "\n";
-
-            std::cout << "Tags: ";
-            for (auto& tag : p["tags"])
-                std::cout << tag << " ";
-            std::cout << "\n";
-
-            return;
+    // Auto refresh if cache is older than 12 hours
+    if (!fetch_from_api) {
+        auto last_mod = get_cache_time(cache_path);
+        auto now = std::chrono::system_clock::now();
+        auto age = std::chrono::duration_cast<std::chrono::hours>(now - last_mod).count();
+        if (age >= 12) {
+            fetch_from_api = true;
+            std::cout << "Cache is older than 12h, refreshing...\n";
         }
     }
 
-    std::cout << "Problem not found\n";
+    std::string data;
+
+    if (fetch_from_api) {
+        std::cout << "Fetching problems from API...\n";
+        data = http_get("https://codeforces.com/api/problemset.problems");
+        write_cache(cache_path, data);
+    } else {
+        data = read_cache(cache_path);
+    }
+
+    // JSON parsing and problem lookup as before
+    auto j = nlohmann::json::parse(data);
+    bool found = false;
+    for (auto &problem : j["result"]["problems"]) {
+        std::string pid = std::to_string(problem["contestId"].get<int>()) + problem["index"].get<std::string>();
+        if (pid == code) {
+            std::cout << "Problem: " << problem["name"] << "\n";
+            std::cout << "Rating: " << (problem.contains("rating") ? std::to_string(problem["rating"].get<int>()) : "N/A") << "\n";
+            std::cout << "Tags: ";
+            for (auto &tag : problem["tags"]) std::cout << tag.get<std::string>() << " ";
+            std::cout << "\n";
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        std::cout << "Problem not found.\n";
+    }
 }
 
 void problem_command(const std::vector<std::string>& args) {
     if (args.size() < 2) {
-        std::cout << "Usage: cf problem <id>\n";
+        std::cout << "Usage: cf problem <code> [--refresh]\n";
         return;
     }
-    get_problem(args[1]);
+
+    // Pass all args to get_problem so it can check for --refresh
+    get_problem(args[1], args);
 }

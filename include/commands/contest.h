@@ -1,6 +1,5 @@
 #pragma once
-#include <string>
 #include <vector>
+#include <string>
 
-void list_contests();
 void contest_command(const std::vector<std::string>& args);
