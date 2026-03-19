@@ -2,71 +2,78 @@
 
 A minimal terminal client for Codeforces built in C++.
 
-This project is an attempt to interact with Codeforces directly from the terminal, similar to tools like GitHub CLI, but focused on competitive programming workflows.
-
----
+This project lets you interact with Codeforces directly from the terminal, similar to tools like GitHub CLI, but focused on competitive programming workflows.
 
 ## Motivation
 
 Most competitive programmers use the browser for everything:
 
-* checking problems
-* viewing contests
-* checking submissions
+- Checking problems
+- Viewing contests
+- Checking submissions
 
 This tool aims to:
 
-* reduce browser dependency
-* make workflows faster
-* provide a clean terminal experience
-
-Also, this is a learning project to understand:
-
-* HTTP requests in C++
-* working with APIs
-* building CLI tools
-* structuring real-world C++ projects
-
----
+- Reduce browser dependency
+- Make workflows faster
+- Provide a clean terminal experience
+- Serve as a learning project for understanding APIs, HTTP requests, and CLI tool development in C++
 
 ## Features (current)
 
-* Get user information
+- Get user information
+```
 
-```bash
 cf user <handle>
+
 ```
 
-* List contests
+- List contests
+```
 
-```bash
 cf contest list
+
 ```
 
----
+- Fetch and view problems
+```
+
+cf problem <contestId><index> [--refresh]
+
+```
+
+- Automatic caching with refresh:
+  - Problems, contests, and user info are cached in `~/.cf-cli`
+  - Cache automatically refreshes if older than 12 hours
+  - Manual refresh supported with `--refresh` flag
 
 ## Project Structure
 
 ```
+
 cf-cli/
 ├── include/
 │   ├── api/
 │   │   └── codeforces.h
 │   └── commands/
 │       ├── user.h
-│       └── contest.h
+│       ├── contest.h
+│       └── problem.h
 ├── src/
 │   ├── main.cpp
 │   ├── api/
 │   │   └── codeforces.cpp
 │   └── commands/
 │       ├── user.cpp
-│       └── contest.cpp
+│       ├── contest.cpp
+│       ├── problem.cpp
+│       └── registry.cpp
+├── src/utils/
+│   └── cache.cpp
 ├── build/
 └── README.md
-```
 
----
+```
 
 ## How It Works
 
@@ -77,49 +84,38 @@ The program starts from `main.cpp`.
 It reads command line arguments:
 
 ```
+
 cf <command> <subcommand> [args]
+
 ```
 
 Example:
 
 ```
+
 cf user tourist
 cf contest list
-```
+cf problem 1700A
 
----
+```
 
 ### 2. Command Layer
 
 Each command is separated into its own module:
 
-* `user.cpp` → handles user-related operations
-* `contest.cpp` → handles contest-related operations
+- `user.cpp` → handles user operations
+- `contest.cpp` → handles contest operations
+- `problem.cpp` → handles problem fetching
 
-This keeps the code clean and scalable.
-
----
+This modular design keeps the code clean and scalable.
 
 ### 3. API Layer
 
-Located in:
+Located in `src/api/codeforces.cpp`, it:
 
-```
-src/api/codeforces.cpp
-```
-
-This layer:
-
-* makes HTTP requests using libcurl
-* returns raw response data
-
-Function used:
-
-```
-http_get(url)
-```
-
----
+- Makes HTTP requests using libcurl
+- Returns raw response data
+- Works with the JSON parsing layer
 
 ### 4. JSON Parsing
 
@@ -128,85 +124,96 @@ Uses `nlohmann/json` library.
 Example:
 
 ```
+
 auto j = json::parse(data);
+
 ```
 
-This converts API response into usable data.
+This converts API response into usable JSON objects.
 
----
+### 5. Caching System
+
+- Stores cached data in `~/.cf-cli/`  
+- Checks file modification time  
+- Automatically refreshes cache if older than 12 hours  
+- Manual refresh supported via `--refresh`  
 
 ## Dependencies
 
-* libcurl (for HTTP requests)
-* nlohmann/json (for JSON parsing)
-
----
+- libcurl (for HTTP requests)  
+- nlohmann/json (for JSON parsing)  
 
 ## Installation
 
 ### Install libcurl
 
-```bash
+```
+
 sudo apt update
 sudo apt install libcurl4-openssl-dev
+
 ```
 
 ### Add JSON library
 
-```bash
-mkdir -p include/nlohmann
-wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp -O include/nlohmann/json.hpp
 ```
 
----
+mkdir -p include/nlohmann
+wget [https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp](https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp) -O include/nlohmann/json.hpp
+
+```
 
 ## Build
 
 From project root:
 
-```bash
-g++ src/main.cpp src/api/codeforces.cpp src/commands/user.cpp src/commands/contest.cpp -Iinclude -o build/cf -lcurl
 ```
 
----
+make
+
+```
+
+This will compile all files and produce the binary:
+
+```
+
+build/cf
+
+```
 
 ## Run
 
-```bash
-./build/cf user tourist
-./build/cf contest list
 ```
 
----
+./build/cf user tourist
+./build/cf contest list
+./build/cf problem 1700A
+
+```
 
 ## Design Decisions
 
-* No external CLI libraries (manual parsing for learning)
-* Modular structure (API vs commands)
-* Header/source separation
-* Minimal dependencies
-
----
+- No external CLI libraries (manual parsing for learning)  
+- Modular structure (API vs commands)  
+- Header/source separation  
+- Minimal dependencies  
+- Auto-refresh caching for offline-friendly performance
 
 ## Current Limitations
 
-* No authentication
-* No submission support
-* Basic CLI parsing (not robust yet)
-* No error handling for network failures
-
----
+- No authentication  
+- No submission support  
+- Basic CLI parsing (not robust yet)  
+- Limited error handling for network failures  
 
 ## Future Plans
 
-* Better CLI parsing system
-* Add submissions command
-* Add problem fetching
-* Implement login/session handling
-* Submit solutions from terminal
-* Improve output formatting
-
----
+- Better CLI parsing system  
+- Add submissions command  
+- Add problem fetching by tag  
+- Implement login/session handling  
+- Submit solutions from terminal  
+- Improve output formatting and terminal UX  
 
 ## Contributing
 
@@ -214,27 +221,14 @@ This is an open learning project.
 
 You can contribute by:
 
-* adding new commands
-* improving structure
-* fixing bugs
-* improving documentation
+- Adding new commands  
+- Improving structure  
+- Fixing bugs  
+- Improving documentation  
 
 Before contributing:
 
-* keep code simple
-* follow existing structure
-* avoid unnecessary complexity
+- Keep code simple  
+- Follow existing structure  
+- Avoid unnecessary complexity  
 
----
-
-## Notes for Contributors
-
-* Do not include `.cpp` files inside other `.cpp`
-* Use headers properly
-* Keep API logic separate from command logic
-
----
-
-## License
-
-This project is licensed under the MIT License.
